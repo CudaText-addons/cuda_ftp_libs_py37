@@ -135,6 +135,21 @@ class BadHostKeyException(SSHException):
         )
 
 
+class IncompatiblePeer(SSHException):
+    """
+    A disagreement arose regarding an algorithm required for key exchange.
+
+    .. versionadded:: 2.9
+    """
+
+    # TODO 3.0: consider making this annotate w/ 1..N 'missing' algorithms,
+    # either just the first one that would halt kex, or even updating the
+    # Transport logic so we record /all/ that /could/ halt kex.
+    # TODO: update docstrings where this may end up raised so they are more
+    # specific.
+    pass
+
+
 class ProxyCommandFailure(SSHException):
     """
     The "ProxyCommand" found in the .ssh/config file returned an error.
@@ -196,3 +211,27 @@ class NoValidConnectionsError(socket.error):
 
     def __reduce__(self):
         return (self.__class__, (self.errors,))
+
+
+class CouldNotCanonicalize(SSHException):
+    """
+    Raised when hostname canonicalization fails & fallback is disabled.
+
+    .. versionadded:: 2.7
+    """
+
+    pass
+
+
+class ConfigParseError(SSHException):
+    """
+    A fatal error was encountered trying to parse SSH config data.
+
+    Typically this means a config file violated the ``ssh_config``
+    specification in a manner that requires exiting immediately, such as not
+    matching ``key = value`` syntax or misusing certain ``Match`` keywords.
+
+    .. versionadded:: 2.7
+    """
+
+    pass

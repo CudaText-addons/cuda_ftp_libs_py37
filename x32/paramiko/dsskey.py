@@ -92,8 +92,9 @@ class DSSKey(PKey):
     def __str__(self):
         return self.asbytes()
 
-    def __hash__(self):
-        return hash((self.get_name(), self.p, self.q, self.g, self.y))
+    @property
+    def _fields(self):
+        return (self.get_name(), self.p, self.q, self.g, self.y)
 
     def get_name(self):
         return "ssh-dss"
@@ -104,7 +105,7 @@ class DSSKey(PKey):
     def can_sign(self):
         return self.x is not None
 
-    def sign_ssh_data(self, data):
+    def sign_ssh_data(self, data, algorithm=None):
         key = dsa.DSAPrivateNumbers(
             x=self.x,
             public_numbers=dsa.DSAPublicNumbers(
@@ -229,12 +230,19 @@ class DSSKey(PKey):
         self._decode_key(data)
 
     def _decode_key(self, data):
+        pkformat, data = data
         # private key file contains:
         # DSAPrivateKey = { version = 0, p, q, g, y, x }
-        try:
-            keylist = BER(data).decode()
-        except BERException as e:
-            raise SSHException("Unable to parse key file: " + str(e))
+        if pkformat == self._PRIVATE_KEY_FORMAT_ORIGINAL:
+            try:
+                keylist = BER(data).decode()
+            except BERException as e:
+                raise SSHException("Unable to parse key file: {}".format(e))
+        elif pkformat == self._PRIVATE_KEY_FORMAT_OPENSSH:
+            keylist = self._uint32_cstruct_unpack(data, "iiiii")
+            keylist = [0] + list(keylist)
+        else:
+            self._got_bad_key_format_id(pkformat)
         if type(keylist) is not list or len(keylist) < 6 or keylist[0] != 0:
             raise SSHException(
                 "not a valid DSA private key file (bad ber encoding)"
